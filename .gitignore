@@ -1,0 +1,19 @@
+# Личные данные: профиль браузера с куками и авторизацией
+# (фактически лежит в ~/.razlozhi-spider-solver-profile, но паттерн защитит,
+# если profile окажется внутри проекта)
+.razlozhi-spider-solver-profile/
+*spider-solver-profile/
+browser-profile/
+
+# Локальные секреты и логи
+.env
+.env.*
+*.log
+
+# Служебные файлы macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Зависимости
+node_modules/
