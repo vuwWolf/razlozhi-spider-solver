@@ -1,0 +1,17 @@
+{
+  "name": "razlozhi-spider-solver",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Автоматическое прохождение пасьянса «Паук (две масти)» на razlozhi.ru",
+  "scripts": {
+    "solve": "node src/cli.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.65.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
