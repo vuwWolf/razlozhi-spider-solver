@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spider Solver — веб-интерфейс</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Паук (две масти)</h1>
+        <p class="subtitle">Автоматический решатель · razlozhi.ru</p>
+      </div>
+      <div id="statusBadge" class="badge">Готово</div>
+    </header>
+
+    <section class="panel">
+      <h2>Управление</h2>
+      <div class="row">
+        <label>Режим
+          <select id="mode">
+            <option value="normal">Обычная игра</option>
+            <option value="daily">Ежедневная колода</option>
+            <option value="deck">Своя колода</option>
+          </select>
+        </label>
+        <label id="deckField" class="hidden">Код колоды (104 символа)
+          <input id="deck" type="text" spellcheck="false" placeholder="Вставьте код колоды">
+        </label>
+      </div>
+
+      <div class="grid">
+        <label>Колод подряд <input id="games" type="number" min="1" max="100" value="10"></label>
+        <label>Попыток поиска <input id="attempts" type="number" min="1" max="50" value="8"></label>
+        <label>Шагов beam <input id="maxNodes" type="number" min="100" max="10000" value="1500"></label>
+        <label>Лимит времени, мс <input id="timeout" type="number" min="1000" max="300000" value="20000"></label>
+      </div>
+
+      <label class="check">
+        <input id="headless" type="checkbox" checked>
+        Фоновый режим (без окна браузера)
+      </label>
+
+      <div class="buttons">
+        <button id="startBtn" class="primary">Запустить</button>
+        <button id="loginBtn">Войти на сайт</button>
+        <button id="confirmBtn" class="accent hidden">Я вошёл</button>
+        <button id="stopBtn" class="danger" disabled>Стоп</button>
+      </div>
+
+      <p id="message" class="message">Готово к запуску</p>
+    </section>
+
+    <section class="panel">
+      <h2>Прогресс</h2>
+      <div class="progress"><div id="progressBar"></div></div>
+      <div class="stats">
+        <div><span>Колода</span><strong id="deckValue">—</strong></div>
+        <div><span>Решение</span><strong id="solutionValue">—</strong></div>
+        <div><span>Ходы</span><strong id="movesValue">0 / 0</strong></div>
+        <div><span>Попытка</span><strong id="attemptValue">—</strong></div>
+        <div><span>Собрано мастей</span><strong id="foundationsValue">0 / 8</strong></div>
+        <div><span>Победа</span><strong id="winnerValue">—</strong></div>
+      </div>
+    </section>
+
+    <section class="panel log-panel">
+      <h2>Журнал</h2>
+      <pre id="log"></pre>
+    </section>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

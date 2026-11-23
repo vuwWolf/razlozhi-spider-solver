@@ -6,6 +6,7 @@
   "description": "Автоматическое прохождение пасьянса «Паук (две масти)» на razlozhi.ru",
   "scripts": {
     "solve": "node src/cli.js",
+    "web": "node src/server.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
