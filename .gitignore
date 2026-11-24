@@ -17,3 +17,7 @@ browser-profile/
 
 # Зависимости
 node_modules/
+
+# Сборки Electron и скопированные браузеры Playwright
+build/
+dist/
