@@ -29,14 +29,33 @@ test('electron-builder настроен для Windows и macOS', async () => {
   );
 });
 
-test('GitHub Actions собирает macOS на macOS-раннере', async () => {
+test('npm-скрипты собирают arm64 и x64 отдельно', async () => {
+  const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
+
+  assert.equal(pkg.scripts['dist:mac:arm64'], 'node scripts/build-mac.mjs arm64');
+  assert.equal(pkg.scripts['dist:mac:x64'], 'node scripts/build-mac.mjs x64');
+  assert.equal(pkg.scripts['dist:mac'], 'node scripts/build-mac.mjs all');
+  assert.equal(
+    pkg.scripts['prepare:mac-browsers:arm64'],
+    'node scripts/copy-playwright-mac.mjs --arch=arm64',
+  );
+  assert.equal(
+    pkg.scripts['prepare:mac-browsers:x64'],
+    'node scripts/copy-playwright-mac.mjs --arch=x64',
+  );
+});
+
+test('GitHub Actions собирает macOS по отдельным архитектурам', async () => {
   const workflow = await readFile(
     path.join(ROOT, '.github', 'workflows', 'build-macos.yml'),
     'utf8',
   );
 
   assert.match(workflow, /runs-on: macos-/);
-  assert.match(workflow, /npm run dist:mac/);
-  assert.match(workflow, /path: dist\/\*\.dmg/);
-  assert.match(workflow, /path: dist\/\*\.zip/);
+  assert.match(workflow, /arch: \[arm64, x64\]/);
+  assert.match(workflow, /npm run dist:mac:\$\{\{ matrix\.arch \}\}/);
+  assert.match(workflow, /name: Spider-Solver-macos-\$\{\{ matrix\.arch \}\}-dmg/);
+  assert.match(workflow, /name: Spider-Solver-macos-\$\{\{ matrix\.arch \}\}-zip/);
+  assert.match(workflow, /path: dist\/\*-\$\{\{ matrix\.arch \}\}\.dmg/);
+  assert.match(workflow, /path: dist\/\*-\$\{\{ matrix\.arch \}\}\.zip/);
 });

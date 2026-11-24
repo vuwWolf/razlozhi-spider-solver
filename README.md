@@ -103,8 +103,9 @@ npm run electron
 # Windows: сборка установщика NSIS
 npm run dist
 
-# macOS: universal-сборка (Intel + Apple Silicon), dmg и zip — только на Mac
-npm run dist:mac
+# macOS: отдельные сборки под Apple Silicon и Intel — только на Mac
+npm run dist:mac:arm64
+npm run dist:mac:x64
 ```
 
 macOS-сборку удобно запускать через GitHub Actions (см. ниже).
@@ -132,26 +133,29 @@ SmartScreen при первом запуске.
 собрать `.dmg`/.zip локально нельзя. Есть два пути:
 
 1. **GitHub Actions (рекомендуется).** В разделе Actions запустите workflow
-   `Build macOS` вручную (`workflow_dispatch`). Он выполнит `npm ci`, тесты,
-   подготовку браузеров и сборку на `macos-latest`, после чего выложит артефакты
-   `Spider-Solver-macos-dmg` и `Spider-Solver-macos-zip`.
-2. **Непосредственно на Mac.** Выполните `npm run dist:mac` — скрипт сначала
-   проверит платформу, подготовит браузеры и соберёт universal-приложение.
+   `Build macOS` вручную (`workflow_dispatch`). Матрица задач соберёт `arm64`
+   и `x64` отдельно и выложит четыре артефакта:
+   `Spider-Solver-macos-arm64-dmg`, `Spider-Solver-macos-arm64-zip`,
+   `Spider-Solver-macos-x64-dmg`, `Spider-Solver-macos-x64-zip`.
+2. **Непосредственно на Mac.** Выполните `npm run dist:mac:arm64` или
+   `npm run dist:mac:x64`. Команда `npm run dist:mac` соберёт обе архитектуры
+   последовательно. Скрипт сначала проверит платформу, затем подготовит браузеры
+   и запустит electron-builder.
 
-`dist:mac` собирает universal-приложение: один `.app` работает и на Intel, и на
-Apple Silicon. Перед сборкой `copy-playwright-mac.mjs` узнаёт URL через
+Сборки раздельные: перед каждым вызовом `copy-playwright-mac.mjs` узнаёт URL через
 `playwright install --dry-run` с `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE`, скачивает
-mac-версии Chromium, headless shell и ffmpeg для обеих архитектур и распаковывает
-их в `build/playwright-browsers-mac`. Symlink-ы из `.app` на Windows создать
-нельзя, поэтому скрипт сохраняет их в `symlinks.json`, а приложение восстанавливает
-их и выставляет биты `+x` при первом запуске на macOS. Браузеры упаковываются
-внутрь приложения, отдельная установка Chromium пользователю не нужна.
-Подготовить браузеры отдельно можно командой `npm run prepare:mac-browsers`.
+mac-версии Chromium, headless shell и ffmpeg **только нужной архитектуры** и
+распаковывает их в `build/playwright-browsers-mac`. Symlink-ы из `.app` на Windows
+создать нельзя, поэтому скрипт сохраняет их в `symlinks.json`, а приложение
+восстанавливает их и выставляет биты `+x` при первом запуске на macOS. Браузеры
+упаковываются внутрь приложения, отдельная установка Chromium пользователю не нужна.
+Подготовить браузеры отдельно можно командами `npm run prepare:mac-browsers:arm64`
+и `npm run prepare:mac-browsers:x64` (без аргумента — сразу обе архитектуры).
 
 Результат в `dist/`:
 
-- `Spider-Solver-0.1.0-mac-universal.dmg` — обычный установщик (перетащить в Applications);
-- `Spider-Solver-0.1.0-mac-universal.zip` — архив для обновлений и ручной установки.
+- `Spider-Solver-0.1.0-mac-arm64.dmg` / `.zip` — для Apple Silicon;
+- `Spider-Solver-0.1.0-mac-x64.dmg` / `.zip` — для Intel.
 
 Сборка **не подписана и не нотаризована**, поэтому macOS Gatekeeper при первом
 запуске потребует «Открыть» через контекстное меню (или

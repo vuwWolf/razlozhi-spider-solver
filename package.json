@@ -13,7 +13,11 @@
     "predist": "node scripts/copy-playwright.mjs",
     "dist": "electron-builder --win",
     "prepare:mac-browsers": "node scripts/copy-playwright-mac.mjs",
-    "dist:mac": "node scripts/build-mac.mjs",
+    "prepare:mac-browsers:arm64": "node scripts/copy-playwright-mac.mjs --arch=arm64",
+    "prepare:mac-browsers:x64": "node scripts/copy-playwright-mac.mjs --arch=x64",
+    "dist:mac": "node scripts/build-mac.mjs all",
+    "dist:mac:arm64": "node scripts/build-mac.mjs arm64",
+    "dist:mac:x64": "node scripts/build-mac.mjs x64",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {

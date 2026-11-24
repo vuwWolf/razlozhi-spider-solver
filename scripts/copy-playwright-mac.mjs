@@ -2,14 +2,15 @@
  * Готовит браузеры Playwright для macOS-сборки.
  *
  * Обычный `playwright install chromium` не работает на Windows: внутри .app
- * есть symlink-ы, а без прав разработчика Windows их создати нельзя. Поэтому
+ * есть symlink-ы, а без прав разработчика Windows их создать нельзя. Поэтому
  * узнаём URL через `playwright install --dry-run` с подменой платформы,
- * скачиваем архивы сами и распаковываем их, заменяя symlink-ы копиями.
+ * скачиваем архивы сами и распаковываем их. Symlink-ы сохраняются в манифест
+ * и восстанавливаются приложением при запуске на macOS.
  *
- * Для Intel и Apple Silicon каталоги объединяются в build/playwright-browsers-mac.
- * electron-builder кладёт их в Resources/playwright-browsers, а main.js выставляет
- * PLAYWRIGHT_BROWSERS_PATH до загрузки playwright. Получается universal-набор:
- * внутри chromium-1255 лежат и chrome-mac-x64, и chrome-mac-arm64.
+ * По умолчанию готовятся обе архитектуры, но сборки раздельные: аргумент
+ * `arm64` или `x64` оставляет в build/playwright-browsers-mac только нужные
+ * браузеры. electron-builder кладёт их в Resources/playwright-browsers,
+ * а main.js выставляет PLAYWRIGHT_BROWSERS_PATH до загрузки playwright.
  */
 import { spawn } from 'node:child_process';
 import { createWriteStream, existsSync } from 'node:fs';
@@ -28,10 +29,25 @@ const BUILD_DIR = path.join(ROOT, 'build');
 const CACHE_DIR = path.join(BUILD_DIR, '.playwright-mac-cache');
 const DESTINATION = path.join(BUILD_DIR, 'playwright-browsers-mac');
 
-const TARGETS = [
+const ALL_TARGETS = [
   { host: 'mac15-arm64', arch: 'arm64', label: 'Apple Silicon' },
   { host: 'mac15', arch: 'x64', label: 'Intel' },
 ];
+
+const withValue = process.argv.find((arg) => arg.startsWith('--arch='));
+const separateIndex = process.argv.indexOf('--arch');
+const archArg = withValue?.split('=')[1]
+  || (separateIndex >= 0 ? process.argv[separateIndex + 1] : null)
+  || process.argv[2];
+
+if (archArg && archArg !== 'arm64' && archArg !== 'x64' && archArg !== 'all') {
+  console.error(`Неизвестная архитектура: ${archArg}. Используйте arm64, x64 или all.`);
+  process.exit(1);
+}
+
+const TARGETS = archArg && archArg !== 'all'
+  ? ALL_TARGETS.filter((target) => target.arch === archArg)
+  : ALL_TARGETS;
 
 function runDryRun(host) {
   return new Promise((resolve, reject) => {
