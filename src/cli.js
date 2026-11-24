@@ -3,6 +3,7 @@ import readline from 'node:readline';
 import { SpiderGame } from './browser.js';
 import { createState, fromSnapshot, isWin, applyMove, describeMove } from './model.js';
 import { solveWithRestarts } from './solver.js';
+import { writeMoveLog } from './report.js';
 
 function parseArgs(argv) {
   const opts = {
@@ -15,6 +16,7 @@ function parseArgs(argv) {
     maxNodes: 1500,
     timeLimitMs: 20000,
     dryRun: false,
+    logFile: null,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -22,6 +24,7 @@ function parseArgs(argv) {
     else if (a === '--daily') opts.daily = true;
     else if (a === '--login') opts.login = true;
     else if (a === '--dry-run') opts.dryRun = true;
+    else if ((a === '--log-file' || a === '--out') && argv[i + 1]) opts.logFile = argv[++i];
     else if (a === '--deck' && argv[i + 1]) opts.deck = argv[++i];
     else if (a === '--games' && argv[i + 1]) opts.games = Number(argv[++i]);
     else if (a === '--attempts' && argv[i + 1]) opts.attempts = Number(argv[++i]);
@@ -86,6 +89,16 @@ async function playGame(game, opts, deckCode) {
   }
 
   log(`решение найдено: ${result.moves.length} ходов, попытка ${result.attempt}`);
+
+  if (opts.logFile) {
+    const saved = await writeMoveLog(opts.logFile, {
+      moves: result.moves,
+      state,
+      deckCode,
+      attempt: result.attempt,
+    });
+    log(`ходы записаны в файл: ${saved.path} (${saved.moves} ходов)`);
+  }
 
   if (opts.dryRun) {
     let s = state;
