@@ -145,3 +145,15 @@ events.onerror = () => {
 };
 
 addLog('Интерфейс готов. Выберите режим и нажмите «Запустить».');
+
+if (window.desktop?.getInfo) {
+  window.desktop.getInfo().then((info) => {
+    const el = $('appVersion');
+    if (!el || !info?.version) return;
+    el.textContent = `Desktop ${info.version}`;
+    el.title = info.profile || '';
+    el.classList.remove('hidden');
+  }).catch(() => {
+    // Веб-версия работает без desktop API — просто не показываем версию.
+  });
+}

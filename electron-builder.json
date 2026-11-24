@@ -1,0 +1,29 @@
+{
+  "appId": "ru.razlozhi.spidersolver",
+  "productName": "Spider Solver",
+  "asar": true,
+  "files": [
+    "src/**/*",
+    "public/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "build/playwright-browsers",
+      "to": "playwright-browsers",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": ["nsis"],
+    "artifactName": "Spider-Solver-${version}-setup-${arch}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}

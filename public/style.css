@@ -51,6 +51,8 @@ h2 { margin: 0 0 16px; font-size: 16px; }
 .badge.good { color: var(--green); border-color: #2ea04344; }
 .badge.bad { color: var(--red); border-color: #da363344; }
 .badge.wait { color: var(--yellow); border-color: #d2992244; }
+.badge.subtle { font-size: 12px; font-weight: 500; }
+.header-badges { display: flex; align-items: center; gap: 8px; }
 
 .panel {
   background: var(--panel);
