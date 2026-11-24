@@ -8,16 +8,31 @@
     "electron/**/*",
     "package.json"
   ],
-  "extraResources": [
-    {
-      "from": "build/playwright-browsers",
-      "to": "playwright-browsers",
-      "filter": ["**/*"]
-    }
-  ],
   "win": {
     "target": ["nsis"],
-    "artifactName": "Spider-Solver-${version}-setup-${arch}.${ext}"
+    "artifactName": "Spider-Solver-${version}-setup-${arch}.${ext}",
+    "extraResources": [
+      {
+        "from": "build/playwright-browsers",
+        "to": "playwright-browsers",
+        "filter": ["**/*"]
+      }
+    ]
+  },
+  "mac": {
+    "target": ["dmg", "zip"],
+    "artifactName": "Spider-Solver-${version}-mac-${arch}.${ext}",
+    "category": "public.app-category.games",
+    "darkModeSupport": true,
+    "identity": null,
+    "hardenedRuntime": false,
+    "extraResources": [
+      {
+        "from": "build/playwright-browsers-mac",
+        "to": "playwright-browsers",
+        "filter": ["**/*"]
+      }
+    ]
   },
   "nsis": {
     "oneClick": false,

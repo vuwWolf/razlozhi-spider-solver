@@ -6,7 +6,9 @@
  * остаются полностью переиспользованными.
  */
 import { app, BrowserWindow, Menu, Tray, dialog, ipcMain, shell } from 'electron';
-import { mkdirSync, existsSync } from 'node:fs';
+import {
+  mkdirSync, existsSync, chmodSync, lstatSync, readdirSync, readFileSync, statSync, symlinkSync,
+} from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,12 +20,75 @@ let serverHandle = null;
 let cleanupDone = false;
 let isQuitting = false;
 
+/**
+ * Windows не умеет создавать symlinks из mac-архивов без прав разработчика.
+ * Поэтому при распаковке мы сохранили их список, а здесь восстанавливаем.
+ */
+function restoreSymlinks(directory) {
+  if (process.platform !== 'darwin') return;
+  const manifest = path.join(directory, 'symlinks.json');
+  if (!existsSync(manifest)) return;
+
+  let links;
+  try {
+    links = JSON.parse(readFileSync(manifest, 'utf8'));
+  } catch {
+    return;
+  }
+
+  for (const { link, target } of links) {
+    try {
+      const full = path.join(directory, link);
+      if (lstatSync(full, { throwIfNoEntry: false })) continue;
+      mkdirSync(path.dirname(full), { recursive: true });
+      symlinkSync(target, full);
+    } catch {
+      // Если восстановить не удалось, Playwright сообщит об ошибке подробнее.
+    }
+  }
+}
+
+/**
+ * Сборка может идти на Windows, где у mac-бинарников теряется бит +x.
+ * На macOS перед запуском Playwright восстанавливаем его.
+ */
+function restoreExecutableBits(directory) {
+  if (process.platform !== 'darwin') return;
+
+  const visit = (current) => {
+    let entries;
+    try {
+      entries = readdirSync(current, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      try {
+        if (entry.isDirectory()) visit(full);
+        else if (entry.isFile()) {
+          const mode = statSync(full).mode;
+          if (!(mode & 0o111)) chmodSync(full, mode | 0o111);
+        }
+      } catch {
+        // Недоступный файл не должен мешать запуску приложения.
+      }
+    }
+  };
+
+  visit(directory);
+}
+
 function configureEnvironment() {
   // В собранном приложении браузеры Playwright лежат в resources,
   // а не в системном кэше — добавляем их до загрузки playwright.
   if (app.isPackaged) {
     const browsers = path.join(process.resourcesPath, 'playwright-browsers');
-    if (existsSync(browsers)) process.env.PLAYWRIGHT_BROWSERS_PATH = browsers;
+    if (existsSync(browsers)) {
+      process.env.PLAYWRIGHT_BROWSERS_PATH = browsers;
+      restoreSymlinks(browsers);
+      restoreExecutableBits(browsers);
+    }
   }
 
   // Свой профиль, чтобы десктоп не конфликтовал с CLI/веб-версией.

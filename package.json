@@ -12,6 +12,8 @@
     "electron": "electron electron/main.js",
     "predist": "node scripts/copy-playwright.mjs",
     "dist": "electron-builder --win",
+    "prepare:mac-browsers": "node scripts/copy-playwright-mac.mjs",
+    "dist:mac": "node scripts/build-mac.mjs",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "electron": "^45.4.1",
-    "electron-builder": "^26.18.0"
+    "electron-builder": "^26.18.0",
+    "unzipper": "^0.12.5"
   }
 }

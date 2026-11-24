@@ -91,7 +91,7 @@ npm run web
 окне Chromium и либо дождитесь автоматического определения, либо нажмите
 «Я вошёл». Профиль сохраняется в `~/.razlozhi-spider-solver-profile`.
 
-## Десктопное приложение Windows (Electron)
+## Десктопное приложение Windows и macOS (Electron)
 
 Приложение использует тот же интерфейс и `Runner`, что и веб-версия, но
 запускается отдельным окном без браузера и терминала:
@@ -100,9 +100,14 @@ npm run web
 # разработка: окно Electron + встроенный локальный сервер
 npm run electron
 
-# сборка установщика NSIS и portable-версии
+# Windows: сборка установщика NSIS
 npm run dist
+
+# macOS: universal-сборка (Intel + Apple Silicon), dmg и zip — только на Mac
+npm run dist:mac
 ```
+
+macOS-сборку удобно запускать через GitHub Actions (см. ниже).
 
 Готовые файлы появятся в `dist/`. Перед сборкой `predist` скопирует уже
 установленные браузеры Playwright из `%LOCALAPPDATA%\ms-playwright` в
@@ -120,6 +125,42 @@ npm run dist
 Установщик получится крупным (~300–450 МБ): внутри и Electron, и браузер
 Playwright. Файл пока не подписан, поэтому Windows может показывать предупреждение
 SmartScreen при первом запуске.
+
+### Сборка для macOS
+
+**electron-builder не поддерживает сборку macOS на Windows или Linux**, поэтому
+собрать `.dmg`/.zip локально нельзя. Есть два пути:
+
+1. **GitHub Actions (рекомендуется).** В разделе Actions запустите workflow
+   `Build macOS` вручную (`workflow_dispatch`). Он выполнит `npm ci`, тесты,
+   подготовку браузеров и сборку на `macos-latest`, после чего выложит артефакты
+   `Spider-Solver-macos-dmg` и `Spider-Solver-macos-zip`.
+2. **Непосредственно на Mac.** Выполните `npm run dist:mac` — скрипт сначала
+   проверит платформу, подготовит браузеры и соберёт universal-приложение.
+
+`dist:mac` собирает universal-приложение: один `.app` работает и на Intel, и на
+Apple Silicon. Перед сборкой `copy-playwright-mac.mjs` узнаёт URL через
+`playwright install --dry-run` с `PLAYWRIGHT_HOST_PLATFORM_OVERRIDE`, скачивает
+mac-версии Chromium, headless shell и ffmpeg для обеих архитектур и распаковывает
+их в `build/playwright-browsers-mac`. Symlink-ы из `.app` на Windows создать
+нельзя, поэтому скрипт сохраняет их в `symlinks.json`, а приложение восстанавливает
+их и выставляет биты `+x` при первом запуске на macOS. Браузеры упаковываются
+внутрь приложения, отдельная установка Chromium пользователю не нужна.
+Подготовить браузеры отдельно можно командой `npm run prepare:mac-browsers`.
+
+Результат в `dist/`:
+
+- `Spider-Solver-0.1.0-mac-universal.dmg` — обычный установщик (перетащить в Applications);
+- `Spider-Solver-0.1.0-mac-universal.zip` — архив для обновлений и ручной установки.
+
+Сборка **не подписана и не нотаризована**, поэтому macOS Gatekeeper при первом
+запуске потребует «Открыть» через контекстное меню (или
+`xattr -dr com.apple.quarantine "Spider Solver.app"`). Для публичного релиза
+нужны сертификат Developer ID и учётные данные Apple: укажите
+`CSC_LINK`/`CSC_KEY_PASSWORD` и `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/
+`APPLE_TEAM_ID`, затем уберите `"identity": null` из `electron-builder.json`.
+На macOS логин сохраняется в
+`~/Library/Application Support/Spider Solver/browser-profile`.
 
 ## Как это работает
 
@@ -146,7 +187,7 @@ SmartScreen при первом запуске.
    решения, до выполнения ходов, поэтому план остаётся даже если игра прервётся.
 7. **Десктоп** (`electron/`) — поднимает тот же сервер на свободном порту и
    открывает его в окне Electron; упаковывает интерфейс, Node и браузеры
-   Playwright в установщик Windows.
+   Playwright в установщики Windows и macOS.
 
 Победа достигается настоящими ходами: `debugWin` / `_doWin()` не
 используются. В конце проверяется `final.winner === true` — то есть победу
