@@ -39,7 +39,6 @@ function setupEmbeddedDesktop(info) {
   });
   syncEmbeddedGame();
   window.addEventListener('resize', syncEmbeddedGame);
-  window.addEventListener('scroll', syncEmbeddedGame, true);
   if (window.ResizeObserver) new ResizeObserver(syncEmbeddedGame).observe($('gameSlot'));
 }
 
