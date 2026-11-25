@@ -10,14 +10,7 @@
   ],
   "win": {
     "target": ["nsis"],
-    "artifactName": "Spider-Solver-${version}-setup-${arch}.${ext}",
-    "extraResources": [
-      {
-        "from": "build/playwright-browsers",
-        "to": "playwright-browsers",
-        "filter": ["**/*"]
-      }
-    ]
+    "artifactName": "Spider-Solver-${version}-setup-${arch}.${ext}"
   },
   "mac": {
     "target": ["dmg", "zip"],
@@ -25,14 +18,7 @@
     "category": "public.app-category.games",
     "darkModeSupport": true,
     "identity": null,
-    "hardenedRuntime": false,
-    "extraResources": [
-      {
-        "from": "build/playwright-browsers-mac",
-        "to": "playwright-browsers",
-        "filter": ["**/*"]
-      }
-    ]
+    "hardenedRuntime": false
   },
   "nsis": {
     "oneClick": false,
