@@ -32,6 +32,10 @@ function setupEmbeddedDesktop(info) {
   if (!info?.embeddedGame) return;
   document.body.classList.add('desktop-embedded');
   $('embeddedNote').classList.remove('hidden');
+  if (info.logDir) $('logDir').placeholder = info.logDir;
+  const openLogDirBtn = $('openLogDirBtn');
+  openLogDirBtn.classList.remove('hidden');
+  openLogDirBtn.addEventListener('click', () => window.desktop.openLogDir?.());
   $('toggleGameBtn').addEventListener('click', () => {
     const collapsed = document.body.classList.toggle('game-collapsed');
     $('toggleGameBtn').textContent = collapsed ? 'Показать игру' : 'Скрыть игру';
@@ -84,6 +88,10 @@ function applyStatus(status) {
     ? 'да'
     : (status.winner === false ? 'нет' : '—');
 
+  const logFile = $('logFileValue');
+  logFile.textContent = status.logFile ? status.logFile.split(/[\\/]/).pop() : '—';
+  logFile.title = status.logFile || '';
+
   const pct = status.total ? Math.round((status.executed / status.total) * 100) : 0;
   $('progressBar').style.width = `${pct}%`;
 
@@ -120,6 +128,8 @@ $('startBtn').addEventListener('click', async () => {
     maxNodes: Number($('maxNodes').value),
     timeout: Number($('timeout').value),
     headless: $('headless').checked,
+    logMoves: $('logMoves').checked,
+    logDir: $('logDir').value.trim(),
   };
   if (body.mode === 'deck' && body.deck.length !== 104) {
     alert('Код колоды должен содержать ровно 104 символа');

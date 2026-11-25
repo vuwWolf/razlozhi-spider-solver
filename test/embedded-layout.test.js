@@ -21,3 +21,14 @@ test('десктопная раскладка прокручивает толь�
   assert.match(css, /body\.desktop-embedded \.control-column\s*\{[^}]*overflow-y:\s*auto/s);
   assert.match(css, /body\.desktop-embedded \.game-panel\s*\{[^}]*grid-column:\s*2/s);
 });
+
+test('в интерфейсе можно включить запись ходов и выбрать папку', async () => {
+  const html = await readPublic('index.html');
+  const app = await readPublic('app.js');
+
+  assert.match(html, /id="logMoves" type="checkbox"/);
+  assert.match(html, /id="logDir"/);
+  assert.match(html, /id="logFileValue"/);
+  assert.match(app, /logMoves: \$\('logMoves'\)\.checked/);
+  assert.match(app, /logDir: \$\('logDir'\)\.value\.trim\(\)/);
+});

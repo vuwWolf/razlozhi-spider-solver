@@ -35,6 +35,12 @@ function configureEnvironment() {
   const profile = path.join(app.getPath('userData'), 'browser-profile');
   process.env.SPIDER_PROFILE_DIR = profile;
   mkdirSync(profile, { recursive: true });
+
+  // Файлы с ходами тоже должны попадать в пользовательскую папку — в
+  // установленном приложении рабочий каталог может быть только для чтения.
+  const logDir = path.join(app.getPath('userData'), 'moves');
+  process.env.SPIDER_LOG_DIR = logDir;
+  mkdirSync(logDir, { recursive: true });
   return profile;
 }
 
@@ -57,6 +63,7 @@ function setupIpc() {
     profile: process.env.SPIDER_PROFILE_DIR || null,
     packaged: app.isPackaged,
     embeddedGame: true,
+    logDir: process.env.SPIDER_LOG_DIR || null,
   }));
 
   ipcMain.handle('app:open-profile', async () => {
@@ -70,6 +77,14 @@ function setupIpc() {
   ipcMain.handle('app:open-external', async (_event, url) => {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return false;
     await shell.openExternal(url);
+    return true;
+  });
+
+  ipcMain.handle('app:open-log-dir', async () => {
+    const dir = process.env.SPIDER_LOG_DIR;
+    if (!dir) return false;
+    mkdirSync(dir, { recursive: true });
+    await shell.openPath(dir);
     return true;
   });
 

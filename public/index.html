@@ -56,6 +56,14 @@
           <input id="headless" type="checkbox" checked>
           Фоновый режим (без окна браузера)
         </label>
+        <label class="check">
+          <input id="logMoves" type="checkbox">
+          Записывать ходы в файл
+        </label>
+        <label>Папка для файлов ходов
+          <input id="logDir" type="text" spellcheck="false" placeholder="По умолчанию — домашняя папка">
+        </label>
+        <button id="openLogDirBtn" class="hidden">Открыть папку с ходами</button>
         <p id="embeddedNote" class="embedded-note hidden">
           В десктопной версии игра всегда отображается в этом окне — отдельного браузера нет.
         </p>
@@ -80,6 +88,7 @@
           <div><span>Попытка</span><strong id="attemptValue">—</strong></div>
           <div><span>Собрано мастей</span><strong id="foundationsValue">0 / 8</strong></div>
           <div><span>Победа</span><strong id="winnerValue">—</strong></div>
+          <div><span>Файл ходов</span><strong id="logFileValue">—</strong></div>
         </div>
       </section>
 

@@ -5,10 +5,13 @@
  * через EventEmitter — сервер транслирует их в браузер по SSE.
  */
 import { EventEmitter } from 'node:events';
+import os from 'node:os';
+import path from 'node:path';
 import {
   createState, fromSnapshot, isWin, applyMove, describeMove,
 } from './model.js';
 import { solveInWorker, stopSolver } from './solver-client.js';
+import { writeMoveLog } from './report.js';
 
 const INITIAL_STATUS = {
   phase: 'idle',
@@ -23,11 +26,19 @@ const INITIAL_STATUS = {
   hidden: 0,
   winner: false,
   user: null,
+  logFile: null,
   message: 'Готово к запуску',
 };
 
 function userLabel(user) {
   return user?.displayName || user?.username || user?.number || JSON.stringify(user);
+}
+
+/** Куда и под каким именем сохранять список ходов из интерфейса. */
+function logPathFor(logDir, gameNo) {
+  const dir = logDir?.trim() || process.env.SPIDER_LOG_DIR || os.homedir();
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  return path.resolve(dir, `spider-moves-${stamp}-${gameNo}.txt`);
 }
 
 export class Runner extends EventEmitter {
@@ -122,6 +133,7 @@ export class Runner extends EventEmitter {
       total: 0,
       winner: false,
       user: null,
+      logFile: null,
       message: 'Открываем браузер...',
     });
 
@@ -154,6 +166,7 @@ export class Runner extends EventEmitter {
         const outcome = await this.playOnce({
           deck: mode === 'deck' ? opts.deck : code,
           opts,
+          gameNo,
         });
         if (outcome.ok) return true;
         if (this.stopRequested) {
@@ -177,7 +190,7 @@ export class Runner extends EventEmitter {
     }
   }
 
-  async playOnce({ deck, opts }) {
+  async playOnce({ deck, opts, gameNo = 1 }) {
     const snapshot = await this.game.readState();
     this.setStatus({
       hidden: snapshot.cols.reduce((n, c) => n + c.down.length, 0),
@@ -225,6 +238,22 @@ export class Runner extends EventEmitter {
     }
 
     this.log(`решение найдено: ${result.moves.length} ходов, попытка ${result.attempt}`);
+
+    if (opts.logMoves) {
+      try {
+        const saved = await writeMoveLog(logPathFor(opts.logDir, gameNo), {
+          moves: result.moves,
+          state,
+          deckCode: deck,
+          attempt: result.attempt,
+        });
+        this.setStatus({ logFile: saved.path });
+        this.log(`ходы записаны: ${saved.path} (${saved.moves} ходов)`);
+      } catch (err) {
+        this.log('не удалось записать ходы:', err?.message || String(err));
+      }
+    }
+
     this.setStatus({
       phase: 'playing',
       solutionMoves: result.moves.length,
