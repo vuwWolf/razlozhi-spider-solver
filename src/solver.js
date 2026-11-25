@@ -32,6 +32,9 @@ export function beamSolve(state, options = {}) {
 
   for (let step = 0; step < opts.maxSteps; step++) {
     if (Date.now() - startedAt > opts.timeLimitMs || opts.shouldStop?.()) break;
+    if (step % 20 === 0) {
+      opts.onProgress?.({ type: 'search', step, nodes, foundations: best.state.foundations });
+    }
 
     const candidates = [];
     let timedOut = false;
@@ -119,6 +122,7 @@ export function solveWithRestarts(state, options = {}) {
   const noises = [0, 0, 500, 0, 0, 200, 500, 1000];
   for (let attempt = 0; attempt < attempts; attempt++) {
     if (options.shouldStop?.()) return null;
+    options.onProgress?.({ type: 'attempt', attempt: attempt + 1, attempts });
     const result = beamSolve(state, {
       ...options,
       dealPenalty: penalties[attempt % penalties.length],

@@ -8,7 +8,7 @@ import { EventEmitter } from 'node:events';
 import {
   createState, fromSnapshot, isWin, applyMove, describeMove,
 } from './model.js';
-import { solveWithRestarts } from './solver.js';
+import { solveInWorker, stopSolver } from './solver-client.js';
 
 const INITIAL_STATUS = {
   phase: 'idle',
@@ -78,6 +78,7 @@ export class Runner extends EventEmitter {
   /** Остановить текущий запуск (эффективно между ходами). */
   stop() {
     this.stopRequested = true;
+    stopSolver();
     const waiters = this.loginWaiters;
     this.loginWaiters = [];
     for (const resolve of waiters) resolve('stop');
@@ -153,6 +154,10 @@ export class Runner extends EventEmitter {
           opts,
         });
         if (outcome.ok) return true;
+        if (this.stopRequested) {
+          this.setStatus({ phase: 'stopped', message: 'Остановлено' });
+          return false;
+        }
         if (mode === 'deck') break;
       }
 
@@ -189,11 +194,20 @@ export class Runner extends EventEmitter {
 
     this.setStatus({ phase: 'solving', message: 'Ищем решение...' });
     this.log('поиск решения...');
-    const result = solveWithRestarts(state, {
+    const result = await solveInWorker(state, {
       restarts: Number(opts.attempts) || 8,
       maxSteps: Number(opts.maxNodes) || 1500,
       timeLimitMs: Number(opts.timeout) || 20000,
-      shouldStop: () => this.stopRequested,
+    }, (progress) => {
+      if (progress.kind === 'attempt') {
+        this.setStatus({
+          message: `Ищем решение... попытка ${progress.attempt}/${progress.attempts}`,
+        });
+      } else if (progress.kind === 'search') {
+        this.setStatus({
+          message: `Ищем решение... попытка ${progress.attempt}, узлов ${progress.nodes}`,
+        });
+      }
     });
 
     if (this.stopRequested) {

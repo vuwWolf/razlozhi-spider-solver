@@ -12,6 +12,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { Runner } from './runner.js';
+import { closeSolver } from './solver-client.js';
 
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -130,6 +131,7 @@ export function createSpiderServer({ runner: providedRunner = null } = {}) {
   async function close() {
     runner.stop();
     await runner.closeGame();
+    await closeSolver();
     for (const res of sseClients) res.end();
     sseClients.clear();
     await new Promise((resolve) => server.close(resolve));
