@@ -49,7 +49,9 @@ export class Runner extends EventEmitter {
 
   setStatus(patch) {
     this.status = { ...this.status, ...patch };
-    this.emit('status', this.status);
+    // В SSE должно уходить то же состояние, что и в /api/status: интерфейс
+    // использует флаг running для кнопок «Запустить»/«Стоп».
+    this.emit('status', this.getStatus());
   }
 
   getStatus() {
@@ -170,6 +172,7 @@ export class Runner extends EventEmitter {
       return false;
     } finally {
       this.running = false;
+      this.emit('status', this.getStatus());
       await this.closeGame();
     }
   }
@@ -330,6 +333,7 @@ export class Runner extends EventEmitter {
       return false;
     } finally {
       this.running = false;
+      this.emit('status', this.getStatus());
       await this.closeGame();
     }
   }
