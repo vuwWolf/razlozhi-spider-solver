@@ -15,6 +15,34 @@ const PHASE_LABELS = {
 
 let currentStatus = { phase: 'idle', running: false };
 
+/** Electron-приложение встраивает игру в #gameSlot через WebContentsView. */
+function syncEmbeddedGame() {
+  if (!window.desktop?.setEmbeddedGameBounds || !$('gameSlot')) return;
+  const slot = $('gameSlot');
+  const rect = slot.getBoundingClientRect();
+  window.desktop.setEmbeddedGameBounds({
+    x: rect.left,
+    y: rect.top,
+    width: rect.width,
+    height: rect.height,
+  });
+}
+
+function setupEmbeddedDesktop(info) {
+  if (!info?.embeddedGame) return;
+  document.body.classList.add('desktop-embedded');
+  $('embeddedNote').classList.remove('hidden');
+  $('toggleGameBtn').addEventListener('click', () => {
+    const collapsed = document.body.classList.toggle('game-collapsed');
+    $('toggleGameBtn').textContent = collapsed ? 'Показать игру' : 'Скрыть игру';
+    syncEmbeddedGame();
+  });
+  syncEmbeddedGame();
+  window.addEventListener('resize', syncEmbeddedGame);
+  window.addEventListener('scroll', syncEmbeddedGame, true);
+  if (window.ResizeObserver) new ResizeObserver(syncEmbeddedGame).observe($('gameSlot'));
+}
+
 function addLog(line) {
   const log = $('log');
   const time = new Date().toLocaleTimeString('ru-RU', { hour12: false });
@@ -148,6 +176,7 @@ addLog('Интерфейс готов. Выберите режим и нажми
 
 if (window.desktop?.getInfo) {
   window.desktop.getInfo().then((info) => {
+    setupEmbeddedDesktop(info);
     const el = $('appVersion');
     if (!el || !info?.version) return;
     el.textContent = `Desktop ${info.version}`;

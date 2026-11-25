@@ -45,8 +45,8 @@ async function readBody(req) {
 }
 
 /** Создаёт изолированный экземпляр сервера со своим Runner. */
-export function createSpiderServer() {
-  const runner = new Runner();
+export function createSpiderServer({ runner: providedRunner = null } = {}) {
+  const runner = providedRunner || new Runner();
   const sseClients = new Set();
 
   function broadcast(event) {
@@ -139,8 +139,8 @@ export function createSpiderServer() {
 }
 
 /** Поднимает сервер и возвращает реальный порт (полезно с port: 0). */
-export async function startServer({ port = 0, host = '127.0.0.1' } = {}) {
-  const instance = createSpiderServer();
+export async function startServer({ port = 0, host = '127.0.0.1', runner = null } = {}) {
+  const instance = createSpiderServer({ runner });
   await new Promise((resolve, reject) => {
     instance.server.once('error', reject);
     instance.server.listen(port, host, resolve);

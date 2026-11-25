@@ -5,7 +5,6 @@
  * через EventEmitter — сервер транслирует их в браузер по SSE.
  */
 import { EventEmitter } from 'node:events';
-import { SpiderGame } from './browser.js';
 import {
   createState, fromSnapshot, isWin, applyMove, describeMove,
 } from './model.js';
@@ -32,8 +31,10 @@ function userLabel(user) {
 }
 
 export class Runner extends EventEmitter {
-  constructor() {
+  /** createGame позволяет десктопу подставить встроенный драйвер вместо Playwright. */
+  constructor({ createGame = null } = {}) {
     super();
+    this.createGame = createGame;
     this.game = null;
     this.running = false;
     this.stopRequested = false;
@@ -57,6 +58,13 @@ export class Runner extends EventEmitter {
 
   async openGame(headless = true) {
     await this.closeGame();
+    if (this.createGame) {
+      this.game = await this.createGame({ headless });
+      return;
+    }
+    // Playwright нужен только CLI/вебу; десктоп подставляет свой драйвер и
+    // вообще не загружает этот модуль.
+    const { SpiderGame } = await import('./browser.js');
     this.game = await SpiderGame.launch({ headless });
   }
 

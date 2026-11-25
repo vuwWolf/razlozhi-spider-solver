@@ -2,10 +2,9 @@
  * Точка входа для macOS-сборки.
  *
  * electron-builder отказывается собирать mac-приложения не на macOS, поэтому
- * проверяем платформу сразу — до скачивания браузеров — и даём понятную
- * подсказку. Архитектура выбирается аргументом: arm64, x64 или all (по умолчанию).
- * Для каждой архитектуры отдельно готовятся браузеры и вызывается electron-builder,
- * поэтому в dist/ получаются отдельные пакеты с нужным набором Chromium.
+ * проверяем платформу сразу и даём понятную подсказку. Архитектура выбирается
+ * аргументом: arm64, x64 или all (по умолчанию). Отдельные пакеты нужны только
+ * потому, что electron-builder не делает универсальные DMG из одной команды.
  */
 import { spawn } from 'node:child_process';
 import path from 'node:path';
@@ -41,11 +40,9 @@ function run(script, args = []) {
   });
 }
 
-const prepare = path.join(ROOT, 'scripts', 'copy-playwright-mac.mjs');
 const builder = path.join(ROOT, 'node_modules', 'electron-builder', 'cli.js');
 
 for (const arch of ARCHES) {
   console.log(`[mac] сборка для ${arch}`);
-  await run(prepare, [`--arch=${arch}`]);
   await run(builder, ['--mac', `--${arch}`, '--publish', 'never']);
 }

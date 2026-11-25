@@ -2,100 +2,53 @@
  * Electron-обёртка над локальным веб-интерфейсом.
  *
  * В main-процессе поднимается тот же сервер, что и у `npm run web`, но на
- * свободном порту. Окно просто открывает его по localhost — frontend и Runner
- * остаются полностью переиспользованными.
+ * свободном порту. Главное окно показывает интерфейс, а страница игры живёт
+ * в WebContentsView внутри этого же окна — отдельного окна Chromium больше нет.
  */
-import { app, BrowserWindow, Menu, Tray, dialog, ipcMain, shell } from 'electron';
 import {
-  mkdirSync, existsSync, chmodSync, lstatSync, readdirSync, readFileSync, statSync, symlinkSync,
-} from 'node:fs';
+  app, BrowserWindow, Menu, Tray, WebContentsView, dialog, ipcMain, shell,
+} from 'electron';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ELECTRON_DIR = path.dirname(fileURLToPath(import.meta.url));
+const GAME_URL = 'https://razlozhi.ru/patience-spider2';
 
 let mainWindow = null;
+let gameView = null;
 let tray = null;
 let serverHandle = null;
 let cleanupDone = false;
 let isQuitting = false;
+const gamePopups = new Set();
 
-/**
- * Windows не умеет создавать symlinks из mac-архивов без прав разработчика.
- * Поэтому при распаковке мы сохранили их список, а здесь восстанавливаем.
- */
-function restoreSymlinks(directory) {
-  if (process.platform !== 'darwin') return;
-  const manifest = path.join(directory, 'symlinks.json');
-  if (!existsSync(manifest)) return;
-
-  let links;
-  try {
-    links = JSON.parse(readFileSync(manifest, 'utf8'));
-  } catch {
-    return;
-  }
-
-  for (const { link, target } of links) {
-    try {
-      const full = path.join(directory, link);
-      if (lstatSync(full, { throwIfNoEntry: false })) continue;
-      mkdirSync(path.dirname(full), { recursive: true });
-      symlinkSync(target, full);
-    } catch {
-      // Если восстановить не удалось, Playwright сообщит об ошибке подробнее.
-    }
-  }
-}
-
-/**
- * Сборка может идти на Windows, где у mac-бинарников теряется бит +x.
- * На macOS перед запуском Playwright восстанавливаем его.
- */
-function restoreExecutableBits(directory) {
-  if (process.platform !== 'darwin') return;
-
-  const visit = (current) => {
-    let entries;
-    try {
-      entries = readdirSync(current, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(current, entry.name);
-      try {
-        if (entry.isDirectory()) visit(full);
-        else if (entry.isFile()) {
-          const mode = statSync(full).mode;
-          if (!(mode & 0o111)) chmodSync(full, mode | 0o111);
-        }
-      } catch {
-        // Недоступный файл не должен мешать запуску приложения.
-      }
-    }
-  };
-
-  visit(directory);
+if (process.env.SPIDER_IGNORE_CERT_ERRORS === '1') {
+  // Только для отладки в сетях с корпоративным MITM-прокси.
+  app.commandLine.appendSwitch('ignore-certificate-errors');
 }
 
 function configureEnvironment() {
-  // В собранном приложении браузеры Playwright лежат в resources,
-  // а не в системном кэше — добавляем их до загрузки playwright.
-  if (app.isPackaged) {
-    const browsers = path.join(process.resourcesPath, 'playwright-browsers');
-    if (existsSync(browsers)) {
-      process.env.PLAYWRIGHT_BROWSERS_PATH = browsers;
-      restoreSymlinks(browsers);
-      restoreExecutableBits(browsers);
-    }
-  }
-
   // Свой профиль, чтобы десктоп не конфликтовал с CLI/веб-версией.
+  // Electron хранит куки в default session в userData, отдельный Chromium-
+  // профиль вроде ~/.razlozhi-spider-solver-profile больше не нужен.
   const profile = path.join(app.getPath('userData'), 'browser-profile');
   process.env.SPIDER_PROFILE_DIR = profile;
   mkdirSync(profile, { recursive: true });
   return profile;
+}
+
+function clampBounds(bounds) {
+  if (!bounds || bounds.width < 40 || bounds.height < 40) return null;
+  const [windowWidth, windowHeight] = mainWindow.getContentSize();
+  const x = Math.max(0, Math.min(Math.round(bounds.x), windowWidth - 40));
+  const y = Math.max(0, Math.min(Math.round(bounds.y), windowHeight - 40));
+  return {
+    x,
+    y,
+    width: Math.max(40, Math.min(Math.round(bounds.width), windowWidth - x)),
+    height: Math.max(40, Math.min(Math.round(bounds.height), windowHeight - y)),
+  };
 }
 
 function setupIpc() {
@@ -103,6 +56,7 @@ function setupIpc() {
     version: app.getVersion(),
     profile: process.env.SPIDER_PROFILE_DIR || null,
     packaged: app.isPackaged,
+    embeddedGame: true,
   }));
 
   ipcMain.handle('app:open-profile', async () => {
@@ -117,6 +71,18 @@ function setupIpc() {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return false;
     await shell.openExternal(url);
     return true;
+  });
+
+  // Интерфейс сообщает координаты области, куда встроить страницу игры.
+  ipcMain.on('game:bounds', (_event, bounds) => {
+    if (!gameView || !mainWindow) return;
+    const next = clampBounds(bounds);
+    if (!next) {
+      gameView.setVisible(false);
+      return;
+    }
+    gameView.setBounds(next);
+    gameView.setVisible(true);
   });
 }
 
@@ -134,7 +100,7 @@ function setupMenu() {
         },
         {
           label: 'Открыть сайт',
-          click: async () => shell.openExternal('https://razlozhi.ru/patience-spider2'),
+          click: async () => shell.openExternal(GAME_URL),
         },
         { type: 'separator' },
         { role: 'quit', label: 'Выход' },
@@ -182,10 +148,47 @@ async function setupTray() {
   }
 }
 
+function createGameView() {
+  gameView = new WebContentsView({
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  mainWindow.contentView.addChildView(gameView);
+  gameView.setVisible(false);
+  gameView.webContents.setBackgroundThrottling(false);
+
+  // OAuth-провайдер открывает новые вкладки — показываем их отдельными
+  // окнами, но это уже окна входа, а не игровое окно.
+  gameView.webContents.setWindowOpenHandler(({ url }) => {
+    if (!/^https?:\/\//i.test(url)) return { action: 'deny' };
+    const popup = new BrowserWindow({
+      width: 1100,
+      height: 800,
+      show: true,
+      webPreferences: { contextIsolation: true, nodeIntegration: false },
+    });
+    gamePopups.add(popup);
+    popup.on('closed', () => gamePopups.delete(popup));
+    popup.loadURL(url);
+    return { action: 'deny' };
+  });
+
+  gameView.webContents.on('did-fail-load', (_event, code, description) => {
+    if (code === -3) return; // навигация отменена — нормально при смене колоды
+    console.warn('[spider-desktop] игра не загрузилась:', code, description);
+  });
+
+  gameView.webContents.loadURL(GAME_URL).catch((err) => {
+    console.warn('[spider-desktop] стартовая загрузка игры:', err?.message || err);
+  });
+}
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 860,
+    width: 1220,
+    height: 980,
     minWidth: 900,
     minHeight: 700,
     title: 'Spider Solver',
@@ -197,6 +200,8 @@ async function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  createGameView();
 
   const origin = `http://127.0.0.1:${serverHandle.port}`;
 
@@ -219,6 +224,7 @@ async function createWindow() {
   });
   mainWindow.on('closed', () => {
     mainWindow = null;
+    gameView = null;
   });
 
   await mainWindow.loadURL(origin);
@@ -226,13 +232,18 @@ async function createWindow() {
 }
 
 async function bootstrap() {
-  configureEnvironment();
+  const profile = configureEnvironment();
   setupIpc();
   setupMenu();
 
-  // Динамический импорт: env должен быть выставлен до загрузки playwright.
+  const { Runner } = await import('../src/runner.js');
+  const { EmbeddedSpiderGame } = await import('../src/electron-browser.js');
   const { startServer } = await import('../src/server.js');
-  serverHandle = await startServer({ port: 0, host: '127.0.0.1' });
+
+  const runner = new Runner({
+    createGame: () => Promise.resolve(new EmbeddedSpiderGame(gameView, { profile })),
+  });
+  serverHandle = await startServer({ port: 0, host: '127.0.0.1', runner });
   console.log(`[spider-desktop] http://127.0.0.1:${serverHandle.port}`);
 
   await createWindow();
@@ -263,6 +274,10 @@ if (!gotLock) {
     event.preventDefault();
     cleanupDone = true;
     (async () => {
+      for (const popup of gamePopups) {
+        if (!popup.isDestroyed()) popup.destroy();
+      }
+      gamePopups.clear();
       await serverHandle?.close();
       app.quit();
     })();
