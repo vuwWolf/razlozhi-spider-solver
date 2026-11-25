@@ -3,9 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.js",
+  "author": "vuwWolf",
   "description": "Автоматическое прохождение пасьянса «Паук (две масти)» на razlozhi.ru",
   "scripts": {
     "solve": "node src/cli.js",
+    "web": "node src/server.js",
+    "electron": "electron electron/main.js",
+    "predist": "node scripts/copy-playwright.mjs",
+    "dist": "electron-builder --win",
+    "prepare:mac-browsers": "node scripts/copy-playwright-mac.mjs",
+    "prepare:mac-browsers:arm64": "node scripts/copy-playwright-mac.mjs --arch=arm64",
+    "prepare:mac-browsers:x64": "node scripts/copy-playwright-mac.mjs --arch=x64",
+    "dist:mac": "node scripts/build-mac.mjs all",
+    "dist:mac:arm64": "node scripts/build-mac.mjs arm64",
+    "dist:mac:x64": "node scripts/build-mac.mjs x64",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
@@ -13,5 +25,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0",
+    "unzipper": "^0.12.5"
   }
 }

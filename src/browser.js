@@ -16,6 +16,9 @@ const GAME_URL = 'https://razlozhi.ru/patience-spider2';
 /** Постоянный профиль браузера: куки и логин сохраняются между запусками. */
 export const PROFILE_DIR = join(homedir(), '.razlozhi-spider-solver-profile');
 
+/** Desktop-обёртка может задать свой профиль через env, чтобы не конфликтовать с CLI. */
+const DEFAULT_PROFILE_DIR = () => process.env.SPIDER_PROFILE_DIR || PROFILE_DIR;
+
 /** Устанавливает в страницу функции чтения состояния и выполнения ходов. */
 function installHelpers() {
   const Game = window.Rzlzh?.Patiences?.Game;
@@ -95,7 +98,7 @@ export class SpiderGame {
   static async launch({
     headless = false,
     url = GAME_URL,
-    profile = PROFILE_DIR,
+    profile = DEFAULT_PROFILE_DIR(),
     persistent = true,
   } = {}) {
     let browser = null;

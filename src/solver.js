@@ -31,14 +31,14 @@ export function beamSolve(state, options = {}) {
   let nodes = 0;
 
   for (let step = 0; step < opts.maxSteps; step++) {
-    if (Date.now() - startedAt > opts.timeLimitMs) break;
+    if (Date.now() - startedAt > opts.timeLimitMs || opts.shouldStop?.()) break;
 
     const candidates = [];
     let timedOut = false;
     for (const node of beam) {
       // Один шаг beam может быть дорогим: проверяем дедлайн и внутри него,
       // иначе лимит времени легко превышается в несколько раз.
-      if (Date.now() - startedAt > opts.timeLimitMs) {
+      if (Date.now() - startedAt > opts.timeLimitMs || opts.shouldStop?.()) {
         timedOut = true;
         break;
       }
@@ -118,6 +118,7 @@ export function solveWithRestarts(state, options = {}) {
   // колодах детерминированный поиск застревает на 6 собранных мастях.
   const noises = [0, 0, 500, 0, 0, 200, 500, 1000];
   for (let attempt = 0; attempt < attempts; attempt++) {
+    if (options.shouldStop?.()) return null;
     const result = beamSolve(state, {
       ...options,
       dealPenalty: penalties[attempt % penalties.length],
