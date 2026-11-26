@@ -12,6 +12,7 @@ import {
 } from './model.js';
 import { solveInWorker, stopSolver } from './solver-client.js';
 import { writeMoveLog } from './report.js';
+import { plannedGames } from './modes.js';
 
 const INITIAL_STATUS = {
   phase: 'idle',
@@ -118,9 +119,7 @@ export class Runner extends EventEmitter {
     this.running = true;
     this.stopRequested = false;
     const mode = ['normal', 'daily', 'deck'].includes(opts.mode) ? opts.mode : 'normal';
-    const totalGames = mode === 'deck'
-      ? 1
-      : Math.max(1, Number(opts.games) || 1);
+    const totalGames = plannedGames({ mode, deck: opts.deck, games: opts.games });
 
     this.setStatus({
       phase: 'starting',
