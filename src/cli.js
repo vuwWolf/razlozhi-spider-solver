@@ -4,6 +4,7 @@ import { SpiderGame } from './browser.js';
 import { createState, fromSnapshot, isWin, applyMove, describeMove } from './model.js';
 import { solveWithRestarts } from './solver.js';
 import { writeMoveLog } from './report.js';
+import { plannedGames } from './modes.js';
 
 function parseArgs(argv) {
   const opts = {
@@ -170,15 +171,11 @@ async function main() {
       log('новая игра начата');
     }
 
-    // Ежедневную колоду нельзя заменить другой, но можно переразложить
-    // (сайт это разрешает) и попробовать решить заново.
-    const totalGames = opts.deck || opts.dryRun ? 1 : Math.max(1, opts.games);
+    const totalGames = plannedGames(opts);
     for (let gameNo = 1; gameNo <= totalGames; gameNo++) {
       if (gameNo > 1) {
-        if (opts.daily) await game.startDailyGame();
-        else await game.startNewGame();
-        log(opts.daily ? `ежедневная колода: попытка ${gameNo}/${totalGames}`
-          : `новая колода: попытка ${gameNo}/${totalGames}`);
+        await game.startNewGame();
+        log(`новая колода: попытка ${gameNo}/${totalGames}`);
       }
       const code = await game.deckCode();
       log('колода:', code);

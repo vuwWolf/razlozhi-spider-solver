@@ -31,7 +31,6 @@ function syncEmbeddedGame() {
 function setupEmbeddedDesktop(info) {
   if (!info?.embeddedGame) return;
   document.body.classList.add('desktop-embedded');
-  $('embeddedNote').classList.remove('hidden');
   if (info.logDir) $('logDir').placeholder = info.logDir;
   const openLogDirBtn = $('openLogDirBtn');
   openLogDirBtn.classList.remove('hidden');
@@ -115,15 +114,21 @@ async function post(url, body = {}) {
   return res.json();
 }
 
-$('mode').addEventListener('change', () => {
-  $('deckField').classList.toggle('hidden', $('mode').value !== 'deck');
-});
+function updateModeFields() {
+  const mode = $('mode').value;
+  $('deckField').classList.toggle('hidden', mode !== 'deck');
+  // Ежедневная колода всегда одна: перебирать колоды подряд не нужно.
+  $('gamesField').classList.toggle('hidden', mode === 'daily');
+}
+
+$('mode').addEventListener('change', updateModeFields);
+updateModeFields();
 
 $('startBtn').addEventListener('click', async () => {
   const body = {
     mode: $('mode').value,
     deck: $('deck').value.trim(),
-    games: Number($('games').value),
+    games: $('mode').value === 'daily' ? 1 : Number($('games').value),
     attempts: Number($('attempts').value),
     maxNodes: Number($('maxNodes').value),
     timeout: Number($('timeout').value),

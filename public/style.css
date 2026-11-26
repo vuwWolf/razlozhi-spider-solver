@@ -78,11 +78,6 @@ h2 { margin: 0 0 16px; font-size: 16px; }
   color: #57606a;
   font-size: 13px;
 }
-.embedded-note {
-  margin: -6px 0 16px;
-  color: var(--muted);
-  font-size: 13px;
-}
 /* В десктопе игра занимает фиксированную область окна и НЕ едет при скролле:
    прокручивается только левая колонка с настройками и журналом. */
 body.desktop-embedded { overflow: hidden; }

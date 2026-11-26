@@ -6,7 +6,7 @@
  * в WebContentsView внутри этого же окна — отдельного окна Chromium больше нет.
  */
 import {
-  app, BrowserWindow, Menu, Tray, WebContentsView, dialog, ipcMain, shell,
+  app, BrowserWindow, Menu, WebContentsView, dialog, ipcMain, shell,
 } from 'electron';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -17,10 +17,8 @@ const GAME_URL = 'https://razlozhi.ru/patience-spider2';
 
 let mainWindow = null;
 let gameView = null;
-let tray = null;
 let serverHandle = null;
 let cleanupDone = false;
-let isQuitting = false;
 const gamePopups = new Set();
 
 if (process.env.SPIDER_IGNORE_CERT_ERRORS === '1') {
@@ -139,30 +137,6 @@ function setupMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-async function setupTray() {
-  try {
-    const icon = await app.getFileIcon(process.execPath);
-    tray = new Tray(icon);
-    tray.setToolTip('Spider Solver');
-    tray.setContextMenu(Menu.buildFromTemplate([
-      {
-        label: 'Показать окно',
-        click: () => {
-          mainWindow?.show();
-          mainWindow?.focus();
-        },
-      },
-      { label: 'Выход', click: () => app.quit() },
-    ]));
-    tray.on('double-click', () => {
-      mainWindow?.show();
-      mainWindow?.focus();
-    });
-  } catch {
-    // Трей — удобство, а не критичная часть: при ошибке просто работаем без него.
-  }
-}
-
 function createGameView() {
   gameView = new WebContentsView({
     webPreferences: {
@@ -231,19 +205,22 @@ async function createWindow() {
     }
   });
 
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-    }
-  });
   mainWindow.on('closed', () => {
     mainWindow = null;
     gameView = null;
   });
 
+  // ready-to-show может прийти раньше, чем разрешится loadURL (особенно на
+  // macOS). Ставим слушатель заранее и дополнительно показываем окно после
+  // загрузки — иначе приложение остаётся без видимого окна.
+  const showWindow = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.show();
+    mainWindow.focus();
+  };
+  mainWindow.once('ready-to-show', showWindow);
   await mainWindow.loadURL(origin);
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  showWindow();
 }
 
 async function bootstrap() {
@@ -262,7 +239,6 @@ async function bootstrap() {
   console.log(`[spider-desktop] http://127.0.0.1:${serverHandle.port}`);
 
   await createWindow();
-  await setupTray();
 }
 
 const gotLock = app.requestSingleInstanceLock();
@@ -283,8 +259,9 @@ if (!gotLock) {
     app.quit();
   });
 
+  app.on('window-all-closed', () => app.quit());
+
   app.on('before-quit', (event) => {
-    isQuitting = true;
     if (cleanupDone) return;
     event.preventDefault();
     cleanupDone = true;
