@@ -15,6 +15,25 @@ export function installHelpers() {
       window.__spiderGame = this;
       return originalStart.apply(this, args);
     };
+
+    // playHistoryItem() ставит _5z_ и вызывает _addLogRecord(). Сайт в этом
+    // случае только дёргает callback и НЕ добавляет запись в this._history —
+    // поэтому сохранённая игра/демка показывала только начальную раздачу.
+    // Пишем ход в историю сами, затем вызываем callback.
+    const originalAddLogRecord = Game.prototype._addLogRecord;
+    if (typeof originalAddLogRecord !== 'function') {
+      throw new Error('Rzlzh.Patiences.Game._addLogRecord не найден');
+    }
+    Game.prototype._addLogRecord = function (record, time) {
+      const callback = this._5z_;
+      const context = this._60_;
+      if (!callback) return originalAddLogRecord.call(this, record, time);
+      this._5z_ = null;
+      this._60_ = null;
+      const result = originalAddLogRecord.call(this, record, time);
+      callback.call(context, true);
+      return result;
+    };
     window.__spiderHooked = true;
   }
 
