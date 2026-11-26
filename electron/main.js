@@ -210,8 +210,17 @@ async function createWindow() {
     gameView = null;
   });
 
+  // ready-to-show может прийти раньше, чем разрешится loadURL (особенно на
+  // macOS). Ставим слушатель заранее и дополнительно показываем окно после
+  // загрузки — иначе приложение остаётся без видимого окна.
+  const showWindow = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.show();
+    mainWindow.focus();
+  };
+  mainWindow.once('ready-to-show', showWindow);
   await mainWindow.loadURL(origin);
-  mainWindow.once('ready-to-show', () => mainWindow?.show());
+  showWindow();
 }
 
 async function bootstrap() {
