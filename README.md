@@ -147,7 +147,7 @@ macOS-сборку удобно запускать через GitHub Actions (с
 можно запустить с `SPIDER_IGNORE_CERT_ERRORS=1` — это отключает проверку
 сертификатов только для отладки.
 
-Файл пока не подписан, поэтому Windows может показывать предупреждение
+Файл не подписан, поэтому Windows может показывать предупреждение
 SmartScreen при первом запуске.
 
 ### Сборка для macOS
@@ -175,12 +175,7 @@ Playwright в них не попадают — игра работает чер�
 
 Сборка **не подписана и не нотаризована**, поэтому macOS Gatekeeper при первом
 запуске потребует «Открыть» через контекстное меню (или
-`xattr -dr com.apple.quarantine "Spider Solver.app"`). Для публичного релиза
-нужны сертификат Developer ID и учётные данные Apple: укажите
-`CSC_LINK`/`CSC_KEY_PASSWORD` и `APPLE_ID`/`APPLE_APP_SPECIFIC_PASSWORD`/
-`APPLE_TEAM_ID`, затем уберите `"identity": null` из `electron-builder.json`.
-На macOS логин сохраняется в
-`~/Library/Application Support/Spider Solver/browser-profile`.
+`xattr -dr com.apple.quarantine "Spider Solver.app"`).
 
 ## Как это работает
 
