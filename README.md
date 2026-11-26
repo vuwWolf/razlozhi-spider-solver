@@ -170,8 +170,8 @@ Playwright в них не попадают — игра работает чер�
 
 Результат в `dist/`:
 
-- `Spider-Solver-0.1.0-mac-arm64.dmg` / `.zip` — для Apple Silicon;
-- `Spider-Solver-0.1.0-mac-x64.dmg` / `.zip` — для Intel.
+- `Spider-Solver-1.0.0-mac-arm64.dmg` / `.zip` — для Apple Silicon;
+- `Spider-Solver-1.0.0-mac-x64.dmg` / `.zip` — для Intel.
 
 Сборка **не подписана и не нотаризована**, поэтому macOS Gatekeeper при первом
 запуске потребует «Открыть» через контекстное меню (или
