@@ -31,7 +31,6 @@ function syncEmbeddedGame() {
 function setupEmbeddedDesktop(info) {
   if (!info?.embeddedGame) return;
   document.body.classList.add('desktop-embedded');
-  $('embeddedNote').classList.remove('hidden');
   if (info.logDir) $('logDir').placeholder = info.logDir;
   const openLogDirBtn = $('openLogDirBtn');
   openLogDirBtn.classList.remove('hidden');
